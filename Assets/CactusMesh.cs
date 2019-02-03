@@ -1,10 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 [RequireComponent(typeof(MeshFilter))]
 public class CactusMesh : MonoBehaviour
 {
+    public bool AutoDetectUpdates = true;
+
     [Header("Bud Settings")]
     [Range(3, 50)]
     public int Meridians; // minimum 3
@@ -66,6 +69,7 @@ public class CactusMesh : MonoBehaviour
 
     private void Update()
     {
+        if (!AutoDetectUpdates) return;
         if (ScaleUniform != 0 && ScaleUniform != SclOffset.x)
         {
             SclOffset = new Vector3(ScaleUniform, ScaleUniform, ScaleUniform);
@@ -101,14 +105,20 @@ public class CactusMesh : MonoBehaviour
             prevTaper = Taper;
             prevLocalRot = LocalRot;
             prevCapsuleHeightOffset = CapsuleHeightOffset;
-            StopAllCoroutines();
-            StartCoroutine(CreateMesh());
+            Regenerate();
         }
 
     }
 
+    public void Regenerate()
+    {
+        StopAllCoroutines();
+        StartCoroutine(CreateMesh());
+    }
+
     private IEnumerator CreateMesh()
     {
+        // transition code, useless except to avoid rewriting
         int meridians = Meridians;
         int parallels = Parallels;
         int midsections = Midsections;
@@ -124,6 +134,7 @@ public class CactusMesh : MonoBehaviour
         mf = GetComponent<MeshFilter>();
         Mesh newMesh = new Mesh();
 
+        Profiler.BeginSample("make verts");
         // VERTICIES
         List<Vector3> startingPoints = new List<Vector3>();
         for (int bud = 0; bud < numBuds; bud++)
@@ -206,17 +217,22 @@ public class CactusMesh : MonoBehaviour
                 if (debug) Debug.DrawLine(point, point + (point) * 0.05f, Color.red, 10000, depthTest);
             }
         }
+        Profiler.EndSample();
 
+        Profiler.BeginSample("set verts");
         newMesh.SetVertices(startingPoints);
+        Profiler.EndSample();
 
         // UVs
+        Profiler.BeginSample("make uvs");
         uvs = new List<Vector2>();
         for (int bud = 0; bud < numBuds; bud++)
         {
             uvs.Add(new Vector2(1, 0));
-            for (float x = 0; x < meridians; x++)
+
+            for (float y = 0; y < parallels + midsections; y++)
             {
-                for (float y = 0; y < parallels + midsections; y++)
+                for (float x = 0; x < meridians; x++)
                 {
                     uvs.Add(new Vector2(x / (float)(meridians), 2 * y / (float)(parallels + midsections)));
                 }
@@ -224,9 +240,13 @@ public class CactusMesh : MonoBehaviour
             uvs.Add(new Vector2(1, 1));
             
         }
+        Profiler.EndSample();
+        Profiler.BeginSample("Set UV");
         newMesh.SetUVs(0, uvs);
+        Profiler.EndSample();
 
         // INDICIES (TRIS)
+        Profiler.BeginSample("Add Indicies");
         indicies = new List<int>();
         for (int bud = 0; bud < numBuds; bud++)
         {
@@ -333,11 +353,18 @@ public class CactusMesh : MonoBehaviour
             indicies.Add(o);
             
         }
+        Profiler.EndSample();
 
+        Profiler.BeginSample("Set indicies");
         newMesh.SetTriangles(indicies, 0);
+        Profiler.EndSample();
         newMesh.name = "ProceduralMesh";
+        Profiler.BeginSample("recalc normals");
         newMesh.RecalculateNormals();
+        Profiler.EndSample();
+        Profiler.BeginSample("set mesh");
         mf.mesh = newMesh;
+        Profiler.EndSample();
     }
 
     private void DrawDebugPoint(List<Vector3> points, int i)
@@ -375,6 +402,7 @@ public class CactusMesh : MonoBehaviour
     // application order is scale, rotate, move
     private static Vector3 DoTransform(Vector3 point, int iteration, Vector3 scaleOffset, Vector3 rotationOffset, Vector3 positionOffset, Vector3 pivot, float flat, Vector3 localRot)
     {
+        Profiler.BeginSample("Do Transform");
         Matrix4x4 rot = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(rotationOffset * iteration), Vector3.one);
         Matrix4x4 scale = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one + scaleOffset * iteration);
         Matrix4x4 trans = Matrix4x4.TRS(positionOffset * iteration, Quaternion.identity, Vector3.one);
@@ -384,7 +412,9 @@ public class CactusMesh : MonoBehaviour
         Matrix4x4 pivotMat = Matrix4x4.TRS(pivot, Quaternion.identity, Vector3.one);
         Matrix4x4 localRotMat = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(localRot * iteration), Vector3.one);
 
+        var ret = trs * localRotMat * pivotMat * flatten * new Vector4(point.x, point.y, point.z, 1);
+        Profiler.EndSample();
         // flat first then "pivot" then local rot then other
-        return trs * localRotMat * pivotMat * flatten * new Vector4(point.x, point.y, point.z, 1);
+        return ret;
     }
 }

@@ -2,7 +2,6 @@
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
-using UnityEngine;
 
 public static class SOSerializer {
 
