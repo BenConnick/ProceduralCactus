@@ -403,20 +403,17 @@ public class CactusMesh : MonoBehaviour
     private static Vector3 DoTransform(Vector3 point, int iteration, Vector3 scaleOffset, Vector3 rotationOffset, Vector3 positionOffset, Vector3 pivot, float flat, Vector3 localRot)
     {
         Profiler.BeginSample("Do Transform");
-        //Matrix4x4 rot = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(rotationOffset * iteration), Vector3.one);
-        //Matrix4x4 scale = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one + scaleOffset * iteration);
-        //Matrix4x4 trans = Matrix4x4.TRS(positionOffset * iteration, Quaternion.identity, Vector3.one);
-       // Matrix4x4 trs = Matrix4x4.TRS(positionOffset * iteration, Quaternion.Euler(rotationOffset * iteration), Vector3.one + scaleOffset * iteration);
-        
-        //Matrix4x4 pivotMat = Matrix4x4.TRS(pivot, Quaternion.identity, Vector3.one);
-        //Matrix4x4 localRotMat = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(localRot * iteration), Vector3.one);
-        
-        // flat first then "pivot" then local rot then other
+
+        // flat first then "pivot" then local rot
         Vector3 p1 = Quaternion.Euler(localRot * iteration) * new Vector3(point.x + pivot.x, point.y + pivot.y, point.z * flat + pivot.z);
-        Vector3 p2 = (Quaternion.Euler(rotationOffset * iteration) * p1);
         Vector3 scl = (Vector3.one + scaleOffset * iteration);
         Vector3 totalOffset = positionOffset * iteration;
-        var p3 = new Vector3(p2.x * scl.x + totalOffset.x, p2.y * scl.y + totalOffset.y, p2.z * scl.z + totalOffset.z);
+        // first scale then offset
+        Vector3 p2 = new Vector3(p1.x * scl.x + totalOffset.x, p1.y * scl.y + totalOffset.y, p1.z * scl.z + totalOffset.z);
+        // finally rotation
+        Vector3 p3 = (Quaternion.Euler(rotationOffset * iteration) * p2);
+        
+        
         Profiler.EndSample();
         
         return p3;

@@ -23,6 +23,8 @@ public class MagicGroundCollider : MonoBehaviour {
 
         height *= terrainTransformScale;
 
+        if (p.y < height) target.transform.position = new Vector3(p.x,height + colliderHalfHeight,p.z);
+
         transform.position = new Vector3(p.x, height - colliderHalfHeight, p.z);
     }
 }
