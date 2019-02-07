@@ -20,6 +20,7 @@ public class TerrainMesh : MonoBehaviour
     public float OuterHeight;
     [Range(1f, 100f)]
     public float InnerHeight;
+    public Vector2 UVOffset;
 
     [Header("Debug Settings")]
     [Range(0, 1)]
@@ -104,8 +105,7 @@ public class TerrainMesh : MonoBehaviour
         {
             for (float x = 0; x < meridians; x++)
             {
-            
-                uvs.Add(new Vector2(x / (float)(meridians), y / (float)(parallels)));
+                uvs.Add(new Vector2(x / (float)(meridians-1) + UVOffset.x, y / (float)(parallels-1) + UVOffset.y));
             }
         }
         newMesh.SetUVs(0, uvs);
