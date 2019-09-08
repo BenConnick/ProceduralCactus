@@ -224,7 +224,7 @@ public class CactusMesh : MonoBehaviour
                     float sinY = Mathf.Sin(yAngleRad);
                     float cosY = Mathf.Cos(yAngleRad);
 
-                    float preserve = meridian % 2 == 0 ? PreservePercent : 0f;
+                    float preserve = meridian % 2 == 0 ? PreservePercent : 1f;
                     float indentZ = preserve * z;
 
 
